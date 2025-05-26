@@ -13,26 +13,64 @@
       this.fetchGuides(true); // Initial Load
       this.setupLoadMoreButton();
       this.setupModal(); // Add modal setup
+      if (!$("style#yg-spinner-style").length) {
+        $("head").append(`
+          <style id="yg-spinner-style">
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        `);
+      }
     },
     renderSearchField: function () {
       var searchField = `
-        <div style="text-align: right; margin: 10px;">
+        <div style="text-align: right; margin: 10px; display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
           <input type="text" id="yg-search" placeholder="Search guides..."
             style="padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
           <button id="yg-search-btn"
             style="padding: 8px 12px; background: ${this.config.primaryColor}; color: white; border: none; border-radius: 5px;">
             Search
           </button>
+          <select id="yg-language" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
+            <option value="ar">Arabic</option>
+            <option value="zh-cn">Chinese</option>
+            <option value="nl">Dutch</option>
+            <option value="en" selected>English</option>
+            <option value="ja">Japanese</option>
+            <option value="it">Italian</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="pl">Polish</option>
+            <option value="pt">Portuguese</option>
+            <option value="ru">Russian</option>
+            <option value="es">Spanish</option>
+          </select>
+        </div>
+
+        <div id="yg-loading" style="display:none; text-align:center; margin-top: 20px;">
+          <div class="yg-spinner" style="
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid ${this.config.primaryColor};
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+          "></div>
         </div>
       `;
       $("#youguide-content").html(searchField);
       $("#yg-search-btn").on("click", () => this.handleSearch());
+      $("#yg-language").on("change", () => this.fetchGuides(true));
     },
     setupModal: function () {
       const modalHtml = `
         <div id="yg-modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
           <div id="yg-modal" style="background: white; padding: 20px; border-radius: ${this.config.borderRadius}; width: 300px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);">
             <h3 style="margin-top: 0;">Enter Your Details</h3>
+            <p id="yg-modal-name" style="margin: 10px 0; font-size: 1.2em; font-weight: 500, color: #666;"></p>
             <p id="yg-modal-description" style="margin: 10px 0; font-size: 0.9em; color: #666;"></p>
             <input id="yg-customer-name" type="text" placeholder="Name" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
             <input id="yg-customer-email" type="email" placeholder="Email" style="width: 100%; margin-bottom: 15px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
@@ -46,10 +84,11 @@
       $("#yg-cancel-btn").on("click", () => this.hideModal());
       $("#yg-confirm-btn").on("click", () => this.confirmPurchase());
     },
-    showModal: function (guideId, pdfId, description) {
+    showModal: function (guideId, name, description) {
       this.currentGuideId = guideId;
-      this.currentPdfId = pdfId;
+      this.currentPdfName = name;
       $("#yg-modal-description").text(description);
+      $("#yg-modal-name").text(name);
       $("#yg-modal-overlay").css("display", "flex");
     },
     hideModal: function () {
@@ -61,17 +100,27 @@
         this.config.currentPage = 1;
         $("#yg-cards").remove();
       }
-      var query = $("#yg-search").val() || "";
-      var url = `${this.config.apiBaseUrl}/get-all-guides?page=${this.config.currentPage}&query=${query}`;
+
+      // Show spinner
+      $("#yg-loading").show();
+
+      const query = $("#yg-search").val() || "";
+      const language = $("#yg-language").val() || "en";
+      const url = `${this.config.apiBaseUrl}/get-all-guides?page=${this.config.currentPage}&query=${query}&language=${language}`;
 
       $.get(url, (response) => {
-        if (response.books) {
-          var books = response.books;
+        // Hide spinner
+        $("#yg-loading").hide();
+
+        if (response.books?.length) {
           this.config.totalPages = response.totalPages;
-          this.renderGuideCards(books);
+          this.renderGuideCards(response.books);
         } else {
-          $("#yg-loading").text("No guides found.");
+          $("#youguide-content").append("<p style='text-align:center;'>No guides found.</p>");
         }
+      }).fail(() => {
+        $("#yg-loading").hide();
+        $("#youguide-content").append("<p style='text-align:center; color: red;'>Failed to load guides.</p>");
       });
     },
     renderGuideCards: function (books) {
@@ -80,16 +129,14 @@
       var cardsHtml = "<div id='yg-cards'>";
 
       books.forEach((book) => {
+        let des = book.description.replace("'", "")
+        console.log(book.description)
         cardsHtml += `
           <div class="yg-card">
-            <img src="https://appapi.youguide.com/${book.imagePath}" alt="${book.name}" style="width: 100%; height: 250px; object-fit: cover; border-radius: 5px;">
+            <img src="${book.imagePath}" alt="${book.name}" style="width: 100%; height: 250px; object-fit: cover; border-radius: 5px;">
             <h3 style="margin: 10px 0; font-size: 1.1em; color: #333;">${book.name}</h3>
-            <p style="font-size: 0.9em; color: #666;">City: ${book.city}</p>
-            <p style="font-size: 0.9em; color: #666;">Country: ${book.country}</p>
-            <select class="yg-pdf-select">
-              ${book.pdfFiles.map((pdf) => `<option value="${pdf._id}">${pdf.language}</option>`).join("")}
-            </select>
-            <button class="yg-buy-btn" onclick="YouGuideWidget.showModal('${book._id}', document.querySelector('.yg-pdf-select').value, '${book.description}')">Buy Guide</button>
+            <p style="font-size: 0.9em; color: #666;">Address: ${book.category._id == "672a73fd3ff8e4cf3ba9084f" ? book.city : book.city + ", " + book.country}</p>
+            <button class="yg-buy-btn" style="background: ${this.config.primaryColor};" onclick="YouGuideWidget.showModal('${book._id}', '${book.name}', '${des}')">Buy Guide</button>
           </div>
         `;
       });
@@ -101,10 +148,10 @@
     setupLoadMoreButton: function () {
       // Remove any existing "Load More" button before appending a new one
       $("#yg-load-more").remove();
-      
+
       // Only append a new "Load More" button if there are more pages to load
       if (this.config.currentPage < this.config.totalPages) {
-        var loadMoreHtml = `<button id="yg-load-more">Load More</button>`;
+        var loadMoreHtml = `<button id="yg-load-more" style="background: ${this.config.primaryColor};">Load More</button>`;
         $("#youguide-content").append(loadMoreHtml);
         $("#yg-load-more").on("click", () => this.loadMoreGuides());
       }
@@ -121,8 +168,8 @@
       var email = $("#yg-customer-email").val();
       if (name && email) {
         // Make API call to confirm purchase
-        var url = `${this.config.apiBaseUrl}/get-guide-purchase-link?email=${email}&name=${name}&guide_id=${this.currentGuideId}&pdf_id=${this.currentPdfId}`;
-        
+        var url = `${this.config.apiBaseUrl}/get-guide-purchase-link?email=${email}&name=${name}&guide_id=${this.currentGuideId}`;
+
         $.get(url, (response) => {
           if (response.url) {
             // Open the URL in a new tab

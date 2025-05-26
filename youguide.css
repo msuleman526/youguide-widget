@@ -71,7 +71,8 @@ body {
 }
 
 /* Buy Button Styling */
-button, .yg-buy-btn {
+button,
+.yg-buy-btn {
   background-color: #007BFF;
   color: white;
   border: none;
@@ -83,11 +84,13 @@ button, .yg-buy-btn {
   transition: background-color 0.3s ease;
 }
 
-button:hover, .yg-buy-btn:hover {
+button:hover,
+.yg-buy-btn:hover {
   background-color: #0056b3;
 }
 
-button:disabled, .yg-buy-btn:disabled {
+button:disabled,
+.yg-buy-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
 }
@@ -237,4 +240,14 @@ button:disabled, .yg-buy-btn:disabled {
   font-size: 1.2em;
   color: #333;
   margin-top: 20px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
