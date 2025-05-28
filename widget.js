@@ -135,7 +135,7 @@
           <div class="yg-card">
             <img src="${book.imagePath}" alt="${book.name}" style="width: 100%; height: 250px; object-fit: cover; border-radius: 5px;">
             <h3 style="margin: 10px 0; font-size: 1.1em; color: #333;">${book.name}</h3>
-            <p style="font-size: 0.9em; color: #666;">Address: ${book.category._id == "672a73fd3ff8e4cf3ba9084f" ? book.city : book.city + ", " + book.country}</p>
+            <p style="font-size: 0.9em; color: #666;">Address: ${book.city == book.country || book.country == "" ? book.city : book.city + ", " + book.country}</p>
             <button class="yg-buy-btn" style="background: ${this.config.primaryColor};" onclick="YouGuideWidget.showModal('${book._id}', '${book.name}', '${des}')">Buy Guide</button>
           </div>
         `;
