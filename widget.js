@@ -35,7 +35,7 @@
           </button>
           <select id="yg-language" style="padding: 8px; border-radius: 5px; border: 1px solid #ccc;">
             <option value="ar">Arabic</option>
-            <option value="zh-cn">Chinese</option>
+            <option value="zh_cn">Chinese</option>
             <option value="nl">Dutch</option>
             <option value="en" selected>English</option>
             <option value="ja">Japanese</option>
